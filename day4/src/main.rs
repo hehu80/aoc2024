@@ -1,9 +1,11 @@
 use std::fs::read_to_string;
 
-fn check_for_word<Fi, Fj>(matrix: &Vec<Vec<char>>, h:i32, w:i32, mut i: i32, mut j: i32,
+fn check_for_word<Fi, Fj>(matrix: &Vec<Vec<char>>, mut i: i32, mut j: i32,
                           word: &Vec<char>, mut fi: Fi, mut fj: Fj) -> bool
     where Fi: FnMut(i32) -> i32, Fj: FnMut(i32) -> i32
 {
+    let h = matrix.len() as i32;
+    let w = matrix.get(0).unwrap().len() as i32;
     for c in 0..word.len() {
         if i < 0 || i >= h || j < 0 || j >= w || word[c] != matrix[i as usize][j as usize] { return false }
         i = fi(i); j = fj(j);
@@ -12,53 +14,37 @@ fn check_for_word<Fi, Fj>(matrix: &Vec<Vec<char>>, h:i32, w:i32, mut i: i32, mut
 }
 
 fn find_words(matrix: &Vec<Vec<char>>, word: &Vec<char>) -> i32 {
-    let h = matrix.len() as i32;
-    let w = matrix.get(0).unwrap().len() as i32;
     let mut count: i32 = 0;
-
-    for i in 0..h {
-        for j in 0..w {
+    for i in 0.. matrix.len() as i32 {
+        for j in 0..matrix.get(0).unwrap().len() as i32 {
             if matrix[i as usize][j as usize] != word[0] { continue; }
-            if check_for_word(&matrix, h, w, i, j, word, |i|i, |j|j+1) { count += 1; }
-            if check_for_word(&matrix, h, w, i, j, word, |i|i+1, |j|j) { count += 1; }
-            if check_for_word(&matrix, h, w, i, j, word, |i|i, |j|j-1) { count += 1; }
-            if check_for_word(&matrix, h, w, i, j, word, |i|i-1, |j|j) { count += 1; }
-            if check_for_word(&matrix, h, w, i, j, word, |i|i+1, |j|j+1) { count += 1; }
-            if check_for_word(&matrix, h, w, i, j, word, |i|i-1, |j|j-1) { count += 1; }
-            if check_for_word(&matrix, h, w, i, j, word, |i|i+1, |j|j-1) { count += 1; }
-            if check_for_word(&matrix, h, w, i, j, word, |i|i-1, |j|j+1) { count += 1; }
+            for di in -1..2 {
+                for dj in -1..2 {
+                    if (di != 0 || dj != 0) && check_for_word(&matrix, i, j, word, |i|i+di, |j|j+dj) { count += 1; }
+                }
+            }
         }
     }
     count
 }
 
+fn check_for_shape(matrix: &Vec<Vec<char>>, word: &Vec<char>, i: i32, j: i32, di1: i32, di2: i32, dj1: i32, dj2: i32) -> bool {
+    check_for_word(&matrix,i+di1, j+dj1, word, |i|if di1 < 0 {i+1} else {i-1}, |j|if dj1 < 0 {j+1} else {j-1}) &&
+    check_for_word(&matrix,i+di2, j+dj2, word, |i|if di2 < 0 {i+1} else {i-1}, |j|if dj2 < 0 {j+1} else {j-1})
+}
+
 fn find_shape(matrix: &Vec<Vec<char>>, word: &Vec<char>) -> i32 {
-    let h = matrix.len() as i32;
-    let w = matrix.get(0).unwrap().len() as i32;
     let m = word.len() as i32 / 2;
     let p = word.len() as i32 - m - 1;
     let mut count: i32 = 0;
 
-    for i in 0..h {
-        for j in 0..w {
+    for i in 0.. matrix.len() as i32 {
+        for j in 0..matrix.get(0).unwrap().len() as i32 {
             if matrix[i as usize][j as usize] != word[m as usize] { continue; }
-
-            if check_for_word(&matrix, h, w, i-p, j-p, word, |i|i+1, |j|j+1) &&
-                check_for_word(&matrix, h, w, i+p, j-p, word, |i|i-1, |j|j+1) {
-                count = count +1;
-            }
-            if check_for_word(&matrix, h, w, i-p, j+p, word, |i|i+1, |j|j-1) &&
-                check_for_word(&matrix, h, w, i+p, j+p, word, |i|i-1, |j|j-1) {
-                count = count +1;
-            }
-            if check_for_word(&matrix, h, w, i+p, j-p, word, |i|i-1, |j|j+1) &&
-                check_for_word(&matrix, h, w, i+p, j+p, word, |i|i-1, |j|j-1) {
-                count = count +1;
-            }
-            if check_for_word(&matrix, h, w, i-p, j-p, word, |i|i+1, |j|j+1) &&
-                check_for_word(&matrix, h, w, i-p, j+p, word, |i|i+1, |j|j-1) {
-                count = count +1;
-            }
+            if check_for_shape(&matrix, word, i, j, -p, p, -p, -p) { count = count + 1 }
+            else if check_for_shape(&matrix, word, i, j, -p, p, p, p) { count = count + 1 }
+            else if check_for_shape(&matrix, word, i, j, p, p, -p, p) { count = count + 1 }
+            else if check_for_shape(&matrix, word, i, j, -p, -p, -p, p) { count = count + 1 }
         }
     }
     count
